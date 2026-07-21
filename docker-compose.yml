@@ -1,0 +1,35 @@
+# UsenetShare — docker-compose example (Portainer stack / unRAID / Synology).
+#
+#   docker compose up -d      # start
+#   docker compose pull && docker compose up -d   # update (image pull)
+#
+# First run: open http://<host>:8386, create the admin account, then
+# Settings -> Connection (your Usenet provider) + activate your license key.
+services:
+  usenetshare:
+    image: ghcr.io/contemptx/usenetshare:latest
+    container_name: usenetshare
+    restart: unless-stopped
+    ports:
+      - "8386:8386"            # web UI + API
+      # - "8086:8086"         # S3 object-storage gateway (only if you enable it
+      #                        #  in Settings; it must bind 0.0.0.0 in-container)
+    volumes:
+      - ./config:/config       # DB, license, config.json, logs, .machine_id
+      #                        #  (KEEP THIS — it holds your license activation)
+      - ./downloads:/downloads # where imported shares are written
+    environment:
+      - PUID=1000              # your host user's id  (`id -u`)
+      - PGID=1000              # your host group's id (`id -g`)
+      - TZ=Etc/UTC
+      # - USENET_API_AUTH_ENABLE=0   # only if you front it with your own auth
+    # Reads /api/health/live; the container is marked healthy once the API answers.
+
+  # Optional: auto-update the image (UsenetShare updates by image pull, not
+  # in-app self-update). Uncomment to let watchtower recreate on a new tag.
+  # watchtower:
+  #   image: containrrr/watchtower
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   command: --cleanup --interval 86400 usenetshare
